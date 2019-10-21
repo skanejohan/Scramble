@@ -34,6 +34,7 @@ let gameContext = {
     bombs: [],
     bullets: [],
     enemyRockets: [],
+    enemySpaceships: [],
     obstacles: [],
 }        
 
@@ -44,6 +45,7 @@ function resetGame() {
     gameContext.bombs = [];
     gameContext.bullets = [];
     gameContext.enemyRockets = [];
+    gameContext.enemySpaceships = [];
     gameContext.obstacles = [];
     addInitialObstacles();
     respawnPlayer();
@@ -437,11 +439,11 @@ function addObstacle(x, upper) {
 
 function addEnemiesOnLowerFlatEdge(x, y) {
     if (gameContext.gameState == GameState.PLAYING) {
-        // TODO randomness
+        // TODO randomness, depending on current score
         gameContext.enemyRockets.push(createRocketItem(x+10, y-10));
-        gameContext.enemyRockets.push(createRocketItem(x+30, y-10));
+        gameContext.enemySpaceships.push(createSpaceshipItem(x+30, y-10));
         gameContext.enemyRockets.push(createRocketItem(x+50, y-10));
-        gameContext.enemyRockets.push(createRocketItem(x+70, y-10));
+        gameContext.enemySpaceships.push(createSpaceshipItem(x+70, y-10));
         gameContext.enemyRockets.push(createRocketItem(x+90, y-10));
     }
 }
@@ -498,7 +500,7 @@ function createBomb(x, y) {
         x : x,
         y : y,
     };
-    obj.draw = function(){
+    obj.draw = function() {
         gameCtx.lineWidth = 4;
         gameCtx.strokeStyle = "#FFFFFF";
         gameCtx.beginPath();
@@ -521,7 +523,38 @@ function createBomb(x, y) {
     };
     obj.dir = 0.2;
     return obj;
+}
 
+function createSpaceshipItem(x, y) {
+    var obj = {
+        x : x,
+        y : y,
+    };
+    obj.draw = function() {
+        gameCtx.lineWidth = 2;
+        gameCtx.strokeStyle = "#FFFFFF";
+        gameCtx.beginPath();
+        gameCtx.moveTo(this.x-7,  this.y-4);
+        gameCtx.lineTo(this.x+7, this.y-4);
+        gameCtx.lineTo(this.x,   this.y+4);
+        gameCtx.lineTo(this.x-7, this.y-4);
+        gameCtx.stroke();
+    };
+    obj.lines = function() {
+        return [
+            { x1 : this.x-7, y1 : this.y-4, x2 : this.x+7, y2 : this.y-4 },
+            { x1 : this.x+7, y1 : this.y-4, x2 : this.x,   y2 : this.y+4 },
+            { x1 : this.x,   y1 : this.y+4, x2 : this.x-7, y2 : this.y-4 },
+        ]
+    };
+    obj.boundingBox = function() {
+        return { left : this.x-7, top : this.y-4, right : this.x+7, bottom : this.y+4 } 
+    };
+    obj.dir = 3 * Math.PI / 2;
+    obj.radiusFactor = 1 + 3 * Math.random();
+    obj.startRotatingAtY = 500 - 200 * Math.random();
+    obj.rotating = false;
+    return obj;
 }
 
 // ------------------------------ Collission detection ------------------------------
@@ -576,6 +609,23 @@ function moveBomb(b, dt)
     b.y += dY; 
 }
 
+function moveSpaceship(b, dt)
+{
+    var dx, dy;
+    if (b.y > b.startRotatingAtY && !b.rotating) {
+        dx = 0;
+        dy = -scrollSpeed / dt;
+    }
+    else {
+        b.rotating = true;
+        dx = scrollSpeed / dt * b.radiusFactor * Math.cos(b.dir);
+        dy = scrollSpeed / dt * b.radiusFactor * Math.sin(b.dir);
+        b.dir += 0.1;
+    }
+    b.x += (dx - scrollSpeed / dt);
+    b.y += dy;
+}
+
 // ------------------------------ Update ------------------------------
 
 function update(dt) {
@@ -627,14 +677,19 @@ function update(dt) {
         // Move bombs
         gameContext.bombs.forEach(b => moveBomb(b, dt));
 
+        // Move spaceships
+        gameContext.enemySpaceships.forEach(s => moveSpaceship(s, dt));
+
         // Perform collission detection
+        var enemies = gameContext.enemyRockets.concat(gameContext.enemySpaceships);
+
         gameContext.obstacles.forEach(o => {
             if (itemsCollide(o, gameContext.player)) {
                 gameContext.player.hasCollided = true;
             }
         });
 
-        gameContext.enemyRockets.forEach(r => {
+        enemies.forEach(r => {
             if (itemsCollide(r, gameContext.player)) {
                 gameContext.player.hasCollided = true;
                 r.hasCollided = true;
@@ -645,10 +700,9 @@ function update(dt) {
                 }
             });
         });
-        gameContext.enemyRockets = gameContext.enemyRockets.filter(r => !r.hasCollided);
 
         gameContext.bullets.forEach(b => {
-            gameContext.enemyRockets.forEach(r => {
+            enemies.forEach(r => {
                 if (itemsCollide(b, r)) {
                     b.hasCollided = true;
                     r.hasCollided = true;
@@ -656,10 +710,9 @@ function update(dt) {
                 }
             });
         });
-        gameContext.bullets = gameContext.bullets.filter(b => b.x < 810 && !b.hasCollided);
 
         gameContext.bombs.forEach(b => {
-            gameContext.enemyRockets.forEach(r => {
+            enemies.forEach(r => {
                 if (itemsCollide(b, r)) {
                     b.hasCollided = true;
                     r.hasCollided = true;
@@ -672,6 +725,10 @@ function update(dt) {
                 }
             });
         });
+
+        gameContext.bullets = gameContext.bullets.filter(b => b.x < 810 && !b.hasCollided);
+        gameContext.enemyRockets = gameContext.enemyRockets.filter(r => !r.hasCollided);
+        gameContext.enemySpaceships = gameContext.enemySpaceships.filter(s => s.x > -10 && !s.hasCollided);
         gameContext.bombs = gameContext.bombs.filter(b => !b.hasCollided);
 
         if (gameContext.player.hasCollided) {
@@ -708,36 +765,26 @@ function drawOverlay() {
     gameCtx.fillStyle = "white";
     gameCtx.font = "24px Arial";
     if (gameContext.gameState == GameState.IDLE) {
-        gameCtx.fillText("SCRAMBLE", 325, 225);
-        gameCtx.fillText("click to play", 330, 350);
+        gameCtx.fillText("SCRAMBLE", 325, 170);
+        gameCtx.fillText("control your ship with the arrow keys", 200, 250);
+        gameCtx.fillText("drop bombs with 'a'", 285, 290);
+        gameCtx.fillText("fire missiles with 's'", 287, 330);
+        gameCtx.fillText("click to play", 330, 420);
     }
     if (gameContext.gameState == GameState.GAMEOVER) {
         gameCtx.fillText("GAME OVER", 325, 300);
     }
 }
 
-function drawPlayer() {
-    if (gameContext.gameState == GameState.PLAYING) {
-        gameContext.player.draw();
-    }
-}
-
-function drawObstacles() {
-    gameContext.obstacles.forEach(o => o.draw());
-}
-
-function drawEnemyRockets() {
-    if (gameContext.gameState == GameState.PLAYING) {
-        gameContext.enemyRockets.forEach(r => r.draw());
-    }
-}
-
 function drawGame() {
     infoCtx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
     gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-    drawObstacles();
-    drawPlayer();
-    drawEnemyRockets();
+    gameContext.obstacles.forEach(o => o.draw());
+    if (gameContext.gameState == GameState.PLAYING) {
+        gameContext.player.draw();
+    }
+    gameContext.enemyRockets.forEach(r => r.draw());
+    gameContext.enemySpaceships.forEach(s => s.draw());
     gameContext.bullets.forEach(b => b.draw());
     gameContext.bombs.forEach(b => b.draw());
     drawOverlay();
