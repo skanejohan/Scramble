@@ -244,6 +244,7 @@ function createRocketItem(x, y) {
     obj.boundingBox = function() {
         return { left : this.x-5, top : this.y-10, right : this.x+5, bottom : this.y+10 } 
     };
+    obj.liftOffAtX = 400 + 300 * Math.random();
     return obj;
 }
 
@@ -442,12 +443,16 @@ function addObstacle(x, upper) {
 
 function addEnemiesOnLowerFlatEdge(x, y) {
     if (gameContext.gameState == GameState.PLAYING) {
-        // TODO randomness, depending on current score
-        gameContext.enemyRockets.push(createRocketItem(x+10, y-10));
-        gameContext.enemySpaceships.push(createSpaceshipItem(x+30, y-10));
-        gameContext.enemyRockets.push(createRocketItem(x+50, y-10));
-        gameContext.enemySpaceships.push(createSpaceshipItem(x+70, y-10));
-        gameContext.enemyRockets.push(createRocketItem(x+90, y-10));
+        for (var i=0; i<5; i++) {
+            if (Math.random() < 0.1 + gameContext.score * 0.001) {
+                if (Math.random() < 0.3) {
+                    gameContext.enemySpaceships.push(createSpaceshipItem(x+10+20*i, y-10));
+                }
+                else {
+                    gameContext.enemyRockets.push(createRocketItem(x+10+20*i, y-10));
+                }
+            }
+        }
     }
 }
 
@@ -612,6 +617,20 @@ function moveBomb(b, dt)
     b.y += dY; 
 }
 
+function moveBullet(b, dt) {
+    var dX = bulletSpeed / dt;
+    b.travelledLine = { x1 : b.x, y1 : b.y, x2 : b.x+dX + 3, y2 : b.y };
+    b.travelledBoundingBox = { x1 : b.x, y1 : b.y-1, x2 : b.x+dX + 3, y2 : b.y+2 };
+    b.x += dX; 
+}
+
+function moveRocket(r, dt) {
+    r.x -= scrollSpeed / dt;
+    if (r.x < r.liftOffAtX) {
+        r.y -= scrollSpeed / dt;
+    }
+}
+
 function moveSpaceship(b, dt)
 {
     var dx, dy;
@@ -661,26 +680,9 @@ function update(dt) {
             gameContext.obstacles = gameContext.obstacles.filter(o => o.x > -100);
         }
 
-        // Move rockets
-        gameContext.enemyRockets.forEach(r => {
-            r.x -= scrollSpeed / dt;
-            if (r.x < 600) {
-                r.y -= scrollSpeed / dt;
-            }
-        });
-
-        // Move bullets
-        gameContext.bullets.forEach(b => {
-            var dX = bulletSpeed / dt;
-            b.travelledLine = { x1 : b.x, y1 : b.y, x2 : b.x+dX + 3, y2 : b.y };
-            b.travelledBoundingBox = { x1 : b.x, y1 : b.y-1, x2 : b.x+dX + 3, y2 : b.y+2 };
-            b.x += dX; 
-        });
-
-        // Move bombs
+        gameContext.enemyRockets.forEach(r => moveRocket(r, dt));
+        gameContext.bullets.forEach(b => moveBullet(b, dt));
         gameContext.bombs.forEach(b => moveBomb(b, dt));
-
-        // Move spaceships
         gameContext.enemySpaceships.forEach(s => moveSpaceship(s, dt));
 
         // Perform collission detection
