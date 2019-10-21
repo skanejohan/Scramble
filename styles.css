@@ -9,16 +9,7 @@ body {
   background-color: rgb(74, 108, 202);
 }
 
-h1 {
-  padding-top: 4px;
-  padding-bottom: 4px;
-  font-size: 14px;
-  font-family: 'Press Start 2P', arial;
-  color: white;
-}
-
 canvas {
-  _border: 1px solid white;
   font-size: 22px;
   font-family: "Arial";
   background-color: rgb(8, 11, 53);

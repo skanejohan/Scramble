@@ -197,7 +197,7 @@ function createPlayerItem(x, y) {
         y : y,
     };
     obj.draw = function(){
-        gameCtx.lineWidth = 4;
+        gameCtx.lineWidth = 2;
         gameCtx.strokeStyle = "#FFFFFF";
         gameCtx.beginPath();
         gameCtx.moveTo(this.x-20, this.y-10);
@@ -225,7 +225,7 @@ function createRocketItem(x, y) {
         y : y,
     };
     obj.draw = function() {
-        gameCtx.lineWidth = 4;
+        gameCtx.lineWidth = 2;
         gameCtx.strokeStyle = "#3ED6C4";
         gameCtx.beginPath();
         gameCtx.moveTo(this.x-5, this.y+10);
@@ -480,7 +480,7 @@ function createBullet(x, y) {
         y : y,
     };
     obj.draw = function(){
-        gameCtx.lineWidth = 4;
+        gameCtx.lineWidth = 2;
         gameCtx.strokeStyle = "#FFFFFF";
         gameCtx.beginPath();
         gameCtx.moveTo(this.x, this.y);
@@ -504,7 +504,7 @@ function createBomb(x, y) {
         y : y,
     };
     obj.draw = function() {
-        gameCtx.lineWidth = 4;
+        gameCtx.lineWidth = 2;
         gameCtx.strokeStyle = "#FFFFFF";
         gameCtx.beginPath();
         gameCtx.moveTo(this.x,   this.y-2);
