@@ -8,6 +8,7 @@ const infoCtx = infoCanvas.getContext('2d');
 var input;
 var upperObstacleFactory;
 var lowerObstacleFactory;
+var defaultCursor;
 
 // ------------------------------ Constants ------------------------------
 
@@ -61,6 +62,7 @@ function setGameState(newState) {
     gameContext.gameState = newState;
     if (newState == GameState.IDLE) {
         resetGame();
+        gameCanvas.style.cursor = defaultCursor;
         gameCanvas.addEventListener('click', () => setGameState(GameState.PLAYING), {once: true});
     }
     if (newState == GameState.LIFELOST) {
@@ -73,6 +75,7 @@ function setGameState(newState) {
         }
     }
     if (newState == GameState.PLAYING) {
+        gameCanvas.style.cursor = "none";
         respawnPlayer();
     }
     if (newState == GameState.GAMEOVER) {
@@ -812,6 +815,7 @@ window.addEventListener('load', () => {
     input = new Input(document);
     upperObstacleFactory = new ObstacleFactory(true);
     lowerObstacleFactory = new ObstacleFactory(false, addEnemiesOnLowerFlatEdge);
+    defaultCursor = gameCanvas.style.cursor; 
     
     setGameState(GameState.IDLE);
     gameLoop();
