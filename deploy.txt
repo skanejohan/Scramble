@@ -1,0 +1,5 @@
+open ftp://skanejohan@ftpcluster.loopia.se/
+put index.html /apps.johanahlgren.se/public_html/scramble/
+put styles.css /apps.johanahlgren.se/public_html/scramble/
+put scramble.js /apps.johanahlgren.se/public_html/scramble/
+exit
