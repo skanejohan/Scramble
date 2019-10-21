@@ -31,6 +31,7 @@ let gameContext = {
     gameState: GameState.IDLE,
     ships: initialShips,
     score: 0,
+    bombs: [],
     bullets: [],
     enemyRockets: [],
     obstacles: [],
@@ -40,6 +41,7 @@ function resetGame() {
     gameContext.gameState = GameState.IDLE;
     gameContext.ships = initialShips;
     gameContext.score = 0;
+    gameContext.bombs = [];
     gameContext.bullets = [];
     gameContext.enemyRockets = [];
     gameContext.obstacles = [];
@@ -87,6 +89,8 @@ class Input {
         this._left = false;
         this._fireBullet = false;
         this._firingBullet = false;
+        this._fireBomb = false;
+        this._firingBomb = false;
         doc.addEventListener('keydown', this._keyDownHandler.bind(this), false);
         doc.addEventListener('keyup', this._keyUpHandler.bind(this), false);
     }
@@ -98,6 +102,12 @@ class Input {
     get fireBullet() {
         if (this._fireBullet) {
             this._fireBullet = false;
+            return true;
+        }
+    }
+    get fireBomb() {
+        if (this._fireBomb) {
+            this._fireBomb = false;
             return true;
         }
     }
@@ -116,7 +126,13 @@ class Input {
             case 40: 
                 this._down = true;
                 break;
-            case 32:
+            case 65:  // 's'
+                if (!this._firingBomb) {
+                    this._fireBomb = true;
+                    this._firingBomb = true;
+                }
+                break;
+        case 83: // 'a'
                 if (!this._firingBullet) {
                     this._fireBullet = true;
                     this._firingBullet = true;
@@ -142,7 +158,10 @@ class Input {
             case 39: 
                 this._right = false;
                 break;
-            case 32:
+            case 65:
+                this._firingBomb = false;
+                break;
+            case 83:
                 this._firingBullet = false;
                 break;
         }
@@ -474,6 +493,37 @@ function createBullet(x, y) {
     return obj;
 }
 
+function createBomb(x, y) {
+    var obj = {
+        x : x,
+        y : y,
+    };
+    obj.draw = function(){
+        gameCtx.lineWidth = 4;
+        gameCtx.strokeStyle = "#FFFFFF";
+        gameCtx.beginPath();
+        gameCtx.moveTo(this.x,   this.y-2);
+        gameCtx.lineTo(this.x+2, this.y);
+        gameCtx.lineTo(this.x,   this.y+2);
+        gameCtx.lineTo(this.x-2, this.y);
+        gameCtx.stroke();
+    };
+    obj.lines = function() {
+        return [
+            { x1 : this.x, y1 : this.y-2, x2 : this.x+2, y2 : this.y },
+            { x1 : this.x+2, y1 : this.y, x2 : this.x, y2 : this.y+2 },
+            { x1 : this.x, y1 : this.y+2, x2 : this.x-2, y2 : this.y },
+            { x1 : this.x-2, y1 : this.y, x2 : this.x, y2 : this.y-2 },
+        ]
+    };
+    obj.boundingBox = function() {
+        return { left : this.x-2, top : this.y-2, right : this.x+2, bottom : this.y+2 } 
+    };
+    obj.dir = 0.2;
+    return obj;
+
+}
+
 // ------------------------------ Collission detection ------------------------------
 
 function boundingBoxesOverlap(box1, box2) {
@@ -513,6 +563,19 @@ function itemsCollide(item1, item2) {
     return collission;
 }
 
+// ------------------------------ Movement ------------------------------
+
+function moveBomb(b, dt)
+{
+    var dX = (1-b.dir) * bulletSpeed / dt;
+    var dY = b.dir * bulletSpeed / dt;
+    b.dir = Math.min(b.dir + 0.5 / dt, 1.00);
+    b.travelledLine = { x1 : b.x, y1 : b.y, x2 : b.x+dX + 2, y2 : b.y+dY+2 };
+    b.travelledBoundingBox = { x1 : b.x, y1 : b.y-1, x2 : b.x+dX + 2, y2 : b.y+dY+2 };
+    b.x += dX;
+    b.y += dY; 
+}
+
 // ------------------------------ Update ------------------------------
 
 function update(dt) {
@@ -528,6 +591,9 @@ function update(dt) {
         // Fire
         if (input.fireBullet) { 
             gameContext.bullets.push(createBullet(gameContext.player.x + 20, gameContext.player.y)); 
+        }
+        if (input.fireBomb) {
+            gameContext.bombs.push(createBomb(gameContext.player.x + 10, gameContext.player.y+10))
         }
 
         // Move the obstacles. Add and remove obstacles as needed.
@@ -557,6 +623,9 @@ function update(dt) {
             b.travelledBoundingBox = { x1 : b.x, y1 : b.y-1, x2 : b.x+dX + 3, y2 : b.y+2 };
             b.x += dX; 
         });
+
+        // Move bombs
+        gameContext.bombs.forEach(b => moveBomb(b, dt));
 
         // Perform collission detection
         gameContext.obstacles.forEach(o => {
@@ -588,6 +657,22 @@ function update(dt) {
             });
         });
         gameContext.bullets = gameContext.bullets.filter(b => b.x < 810 && !b.hasCollided);
+
+        gameContext.bombs.forEach(b => {
+            gameContext.enemyRockets.forEach(r => {
+                if (itemsCollide(b, r)) {
+                    b.hasCollided = true;
+                    r.hasCollided = true;
+                    gameContext.score += 10;
+                }
+            });
+            gameContext.obstacles.forEach(o => {
+                if (itemsCollide(o, b)) {
+                    b.hasCollided = true;
+                }
+            });
+        });
+        gameContext.bombs = gameContext.bombs.filter(b => !b.hasCollided);
 
         if (gameContext.player.hasCollided) {
             setGameState(GameState.LIFELOST);
@@ -654,6 +739,7 @@ function drawGame() {
     drawPlayer();
     drawEnemyRockets();
     gameContext.bullets.forEach(b => b.draw());
+    gameContext.bombs.forEach(b => b.draw());
     drawOverlay();
     drawInfo();
 }
