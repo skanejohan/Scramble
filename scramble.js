@@ -32,6 +32,7 @@ let gameContext = {
     gameState: GameState.IDLE,
     ships: initialShips,
     score: 0,
+    high: 0,
     bombs: [],
     bullets: [],
     enemyRockets: [],
@@ -68,6 +69,7 @@ function setGameState(newState) {
     if (newState == GameState.LIFELOST) {
         gameContext.ships -= 1;
         if (gameContext.ships == 0) {
+            gameContext.high = Math.max(gameContext.high, gameContext.score);
             setGameState(GameState.GAMEOVER);
         }
         else {
@@ -744,11 +746,8 @@ function update(dt) {
 
 // ------------------------------ Draw ------------------------------
 
-function drawInfo() {
-    infoCtx.fillStyle = "white";
-    infoCtx.font = "18px Arial";
-    infoCtx.fillText("SCORE:", 10, 21);
-    var rest = gameContext.score;
+function drawFiveDigitNumber(value, left) {
+    var rest = value;
     var sc1 = Math.floor(rest / 10000);
     rest = rest - sc1 * 10000;
     var sc2 = Math.floor(rest / 1000);
@@ -757,13 +756,23 @@ function drawInfo() {
     rest = rest - sc3 * 100;
     var sc4 = Math.floor(rest / 10);
     var sc5 = rest - sc4 * 10;
-    infoCtx.fillText(sc1, 100, 21);
-    infoCtx.fillText(sc2, 115, 21);
-    infoCtx.fillText(sc3, 130, 21);
-    infoCtx.fillText(sc4, 145, 21);
-    infoCtx.fillText(sc5, 160, 21);
-    infoCtx.fillText("SHIPS:", 250, 21);
-    infoCtx.fillText(gameContext.ships, 340, 21);
+    infoCtx.fillText(sc1, left, 21);
+    infoCtx.fillText(sc2, left + 15, 21);
+    infoCtx.fillText(sc3, left + 30, 21);
+    infoCtx.fillText(sc4, left + 45, 21);
+    infoCtx.fillText(sc5, left + 60, 21);
+
+}
+
+function drawInfo() {
+    infoCtx.fillStyle = "white";
+    infoCtx.font = "18px Arial";
+    infoCtx.fillText("SCORE:", 10, 21);
+    drawFiveDigitNumber(gameContext.score, 100);
+    infoCtx.fillText("SHIPS:", 365, 21);
+    infoCtx.fillText(gameContext.ships, 450, 21);
+    infoCtx.fillText("HIGH:", 625, 21);
+    drawFiveDigitNumber(gameContext.high, 715);
 }
 
 function drawOverlay() {
