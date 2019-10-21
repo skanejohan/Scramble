@@ -145,9 +145,6 @@ class Input {
                     this._firingBullet = true;
                 }
                 break;
-            default:
-                console.log(e.keyCode);
-                break;
         }
     }
     
@@ -246,7 +243,7 @@ function createRocketItem(x, y) {
     obj.boundingBox = function() {
         return { left : this.x-5, top : this.y-10, right : this.x+5, bottom : this.y+10 } 
     };
-    obj.liftOffAtX = 400 + 300 * Math.random();
+    obj.liftOffAtX = 200 + 500 * Math.random();
     return obj;
 }
 
@@ -450,7 +447,7 @@ function addObstacle(x, upper) {
 function addEnemiesOnLowerFlatEdge(x, y) {
     if (gameContext.gameState == GameState.PLAYING) {
         for (var i=0; i<5; i++) {
-            if (Math.random() < 0.1 + gameContext.score * 0.001) {
+            if (Math.random() < 0.2 + gameContext.score * 0.001) {
                 if (Math.random() < 0.3) {
                     gameContext.enemySpaceships.push(createSpaceshipItem(x+10+20*i, y-10));
                 }
@@ -715,11 +712,18 @@ function update(dt) {
         });
 
         gameContext.bullets.forEach(b => {
-            enemies.forEach(r => {
+            gameContext.enemyRockets.forEach(r => {
                 if (itemsCollide(b, r)) {
                     b.hasCollided = true;
                     r.hasCollided = true;
                     gameContext.score += 10;
+                }
+            });
+            gameContext.enemySpaceships.forEach(r => {
+                if (itemsCollide(b, r)) {
+                    b.hasCollided = true;
+                    r.hasCollided = true;
+                    gameContext.score += 50;
                 }
             });
         });
