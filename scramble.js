@@ -258,6 +258,10 @@ class ObstacleFactory {
         this.onLowerFlatEdgeAdded = onLowerFlatEdgeAdded;
     }
 
+    reset() {
+        this._y = this._upper ? 0 : 600;
+    }
+
     create(x) {
         var result = [];
         var newY = this._getNewY();
@@ -459,6 +463,8 @@ function addEnemiesOnLowerFlatEdge(x, y) {
 }
 
 function addInitialObstacles() {
+    upperObstacleFactory.reset();
+    lowerObstacleFactory.reset();
     gameContext.obstacles.push(upperObstacleFactory._createFlatEdge(0, 0));
     gameContext.obstacles.push(upperObstacleFactory._createFlatEdge(100, 0));
     gameContext.obstacles.push(upperObstacleFactory._createFlatEdge(200, 0));
