@@ -71,7 +71,7 @@ function setGameState(newState) {
             setGameState(GameState.GAMEOVER);
         }
         else {
-            setGameState(GameState.PLAYING);
+            setTimeout(() => setGameState(GameState.PLAYING), 1000);
         }
     }
     if (newState == GameState.PLAYING) {
@@ -775,6 +775,9 @@ function drawOverlay() {
         gameCtx.fillText("drop bombs with 'a'", 285, 290);
         gameCtx.fillText("fire missiles with 's'", 287, 330);
         gameCtx.fillText("click to play", 330, 420);
+    }
+    if (gameContext.gameState == GameState.LIFELOST) {
+        gameCtx.fillText("GET READY", 325, 300);
     }
     if (gameContext.gameState == GameState.GAMEOVER) {
         gameCtx.fillText("GAME OVER", 325, 300);
