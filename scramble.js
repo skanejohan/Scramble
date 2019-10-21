@@ -15,6 +15,7 @@ const initialPlayerX = 100;
 const initialPlayerY = 300;
 const initialShips = 3;
 const scrollSpeed = 50;
+const bulletSpeed = 200;
 const playerSpeed = 100;
 const GameState = {
     IDLE: 1,
@@ -30,6 +31,7 @@ let gameContext = {
     gameState: GameState.IDLE,
     ships: initialShips,
     score: 0,
+    bullets: [],
     enemyRockets: [],
     obstacles: [],
 }        
@@ -38,6 +40,7 @@ function resetGame() {
     gameContext.gameState = GameState.IDLE;
     gameContext.ships = initialShips;
     gameContext.score = 0;
+    gameContext.bullets = [];
     gameContext.enemyRockets = [];
     gameContext.obstacles = [];
     addInitialObstacles();
@@ -82,6 +85,8 @@ class Input {
         this._down = false;
         this._right = false;
         this._left = false;
+        this._fireBullet = false;
+        this._firingBullet = false;
         doc.addEventListener('keydown', this._keyDownHandler.bind(this), false);
         doc.addEventListener('keyup', this._keyUpHandler.bind(this), false);
     }
@@ -90,6 +95,12 @@ class Input {
     get down() { return this._down; }
     get right() { return this._right; }
     get left() { return this._left; }
+    get fireBullet() {
+        if (this._fireBullet) {
+            this._fireBullet = false;
+            return true;
+        }
+    }
 
     _keyDownHandler(e) {
         switch (e.keyCode) {
@@ -104,6 +115,15 @@ class Input {
                 break;
             case 40: 
                 this._down = true;
+                break;
+            case 32:
+                if (!this._firingBullet) {
+                    this._fireBullet = true;
+                    this._firingBullet = true;
+                }
+                break;
+            default:
+                console.log(e.keyCode);
                 break;
         }
     }
@@ -121,6 +141,9 @@ class Input {
                 break;
             case 39: 
                 this._right = false;
+                break;
+            case 32:
+                this._firingBullet = false;
                 break;
         }
     }    
@@ -427,6 +450,30 @@ function addInitialObstacles() {
 
 }
 
+function createBullet(x, y) {
+    var obj = {
+        x : x,
+        y : y,
+    };
+    obj.draw = function(){
+        gameCtx.lineWidth = 4;
+        gameCtx.strokeStyle = "#FFFFFF";
+        gameCtx.beginPath();
+        gameCtx.moveTo(this.x, this.y);
+        gameCtx.lineTo(this.x+3, this.y);
+        gameCtx.stroke();
+    };
+    obj.lines = function() {
+        return [
+            { x1 : this.x, y1 : this.y, x2 : this.x+3, y2 : this.y },
+        ]
+    };
+    obj.boundingBox = function() {
+        return { left : this.x, top : this.y-1, right : this.x+3, bottom : this.y+1 } 
+    };
+    return obj;
+}
+
 // ------------------------------ Collission detection ------------------------------
 
 function boundingBoxesOverlap(box1, box2) {
@@ -446,13 +493,18 @@ function linesIntersect(line1, line2) {
 };
 
 function itemsCollide(item1, item2) {
-    if (!boundingBoxesOverlap(item1.boundingBox(), item2.boundingBox())) {
+    var item1boundingBox = item1.travelledBoundingBox ? item1.travelledBoundingBox : item1.boundingBox();
+    var item1lines = item1.travelledLine ? [item1.travelledLine] : item1.lines();
+    var item2boundingBox = item2.travelledBoundingBox ? item2.travelledBoundingBox : item2.boundingBox();
+    var item2lines = item2.travelledLine ? [item2.travelledLine] : item2.lines();
+
+    if (!boundingBoxesOverlap(item1boundingBox, item2boundingBox)) {
         return false;
     }
 
     var collission = false;
-    item1.lines().forEach(l1 => {
-        item2.lines().forEach(l2 => {
+    item1lines.forEach(l1 => {
+        item2lines.forEach(l2 => {
             if (linesIntersect(l1, l2)) {
                 collission = true;
             }
@@ -473,6 +525,11 @@ function update(dt) {
         if (gameContext.player.x < 100) { gameContext.player.x = 100; }
         if (gameContext.player.x > 700) { gameContext.player.x = 700; }
     
+        // Fire
+        if (input.fireBullet) { 
+            gameContext.bullets.push(createBullet(gameContext.player.x + 20, gameContext.player.y)); 
+        }
+
         // Move the obstacles. Add and remove obstacles as needed.
         var lastX;
         gameContext.obstacles.forEach(o => {
@@ -491,6 +548,14 @@ function update(dt) {
             if (r.x < 600) {
                 r.y -= scrollSpeed / dt;
             }
+        });
+
+        // Move bullets
+        gameContext.bullets.forEach(b => {
+            var dX = bulletSpeed / dt;
+            b.travelledLine = { x1 : b.x, y1 : b.y, x2 : b.x+dX + 3, y2 : b.y };
+            b.travelledBoundingBox = { x1 : b.x, y1 : b.y-1, x2 : b.x+dX + 3, y2 : b.y+2 };
+            b.x += dX; 
         });
 
         // Perform collission detection
@@ -512,6 +577,17 @@ function update(dt) {
             });
         });
         gameContext.enemyRockets = gameContext.enemyRockets.filter(r => !r.hasCollided);
+
+        gameContext.bullets.forEach(b => {
+            gameContext.enemyRockets.forEach(r => {
+                if (itemsCollide(b, r)) {
+                    b.hasCollided = true;
+                    r.hasCollided = true;
+                    gameContext.score += 10;
+                }
+            });
+        });
+        gameContext.bullets = gameContext.bullets.filter(b => b.x < 810 && !b.hasCollided);
 
         if (gameContext.player.hasCollided) {
             setGameState(GameState.LIFELOST);
@@ -577,6 +653,7 @@ function drawGame() {
     drawObstacles();
     drawPlayer();
     drawEnemyRockets();
+    gameContext.bullets.forEach(b => b.draw());
     drawOverlay();
     drawInfo();
 }
