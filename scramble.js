@@ -1,9 +1,10 @@
-
-const gameCanvas = document.getElementById('gameCanvas');
+const gameCanvas = document.createElement('canvas');
+gameCanvas.width = 800;
+gameCanvas.height = 600;
 const gameCtx = gameCanvas.getContext('2d');
 
-const infoCanvas = document.getElementById('infoCanvas');
-const infoCtx = infoCanvas.getContext('2d');
+const canvas = document.getElementById('canvas');
+const context = canvas.getContext('2d');
 
 var input;
 var upperObstacleFactory;
@@ -63,8 +64,8 @@ function setGameState(newState) {
     gameContext.gameState = newState;
     if (newState == GameState.IDLE) {
         resetGame();
-        gameCanvas.style.cursor = defaultCursor;
-        gameCanvas.addEventListener('click', () => setGameState(GameState.PLAYING), {once: true});
+        canvas.style.cursor = defaultCursor;
+        canvas.addEventListener('click', () => setGameState(GameState.PLAYING), {once: true});
     }
     if (newState == GameState.LIFELOST) {
         gameContext.ships -= 1;
@@ -77,7 +78,7 @@ function setGameState(newState) {
         }
     }
     if (newState == GameState.PLAYING) {
-        gameCanvas.style.cursor = "none";
+        canvas.style.cursor = "none";
         respawnPlayer();
     }
     if (newState == GameState.GAMEOVER) {
@@ -766,46 +767,47 @@ function drawFiveDigitNumber(value, left) {
     rest = rest - sc3 * 100;
     var sc4 = Math.floor(rest / 10);
     var sc5 = rest - sc4 * 10;
-    infoCtx.fillText(sc1, left, 21);
-    infoCtx.fillText(sc2, left + 15, 21);
-    infoCtx.fillText(sc3, left + 30, 21);
-    infoCtx.fillText(sc4, left + 45, 21);
-    infoCtx.fillText(sc5, left + 60, 21);
+    context.fillText(sc1, left, 21);
+    context.fillText(sc2, left + 15, 21);
+    context.fillText(sc3, left + 30, 21);
+    context.fillText(sc4, left + 45, 21);
+    context.fillText(sc5, left + 60, 21);
 
 }
 
 function drawInfo() {
-    infoCtx.fillStyle = "white";
-    infoCtx.font = "18px Arial";
-    infoCtx.fillText("SCORE:", 10, 21);
+    context.fillStyle = "white";
+    context.font = "18px Arial";
+    context.fillText("SCORE:", 10, 21);
     drawFiveDigitNumber(gameContext.score, 100);
-    infoCtx.fillText("SHIPS:", 365, 21);
-    infoCtx.fillText(gameContext.ships, 450, 21);
-    infoCtx.fillText("HIGH:", 625, 21);
+    context.fillText("SHIPS:", 365, 21);
+    context.fillText(gameContext.ships, 450, 21);
+    context.fillText("HIGH:", 625, 21);
     drawFiveDigitNumber(gameContext.high, 715);
 }
 
 function drawOverlay() {
-    gameCtx.fillStyle = "white";
-    gameCtx.font = "24px Arial";
+    context.fillStyle = "white";
+    context.font = "24px Arial";
     if (gameContext.gameState == GameState.IDLE) {
-        gameCtx.fillText("SCRAMBLE", 325, 170);
-        gameCtx.fillText("control your ship with the arrow keys", 200, 250);
-        gameCtx.fillText("drop bombs with 'a'", 285, 290);
-        gameCtx.fillText("fire missiles with 's'", 287, 330);
-        gameCtx.fillText("click to play", 330, 420);
+        context.fillText("SCRAMBLE", 325, 170);
+        context.fillText("control your ship with the arrow keys", 200, 250);
+        context.fillText("drop bombs with 'a'", 285, 290);
+        context.fillText("fire missiles with 's'", 287, 330);
+        context.fillText("click to play", 330, 420);
     }
     if (gameContext.gameState == GameState.LIFELOST) {
-        gameCtx.fillText("GET READY", 325, 300);
+        context.fillText("GET READY", 325, 300);
     }
     if (gameContext.gameState == GameState.GAMEOVER) {
-        gameCtx.fillText("GAME OVER", 325, 300);
+        context.fillText("GAME OVER", 325, 300);
     }
 }
 
 function drawGame() {
-    infoCtx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height);
     gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
     gameContext.obstacles.forEach(o => o.draw());
     if (gameContext.gameState == GameState.PLAYING) {
         gameContext.player.draw();
@@ -814,8 +816,16 @@ function drawGame() {
     gameContext.enemySpaceships.forEach(s => s.draw());
     gameContext.bullets.forEach(b => b.draw());
     gameContext.bombs.forEach(b => b.draw());
+
+    context.fillStyle = "#4A6CCA";
+    context.beginPath();
+    context.rect(0, 30, 800, 10);
+    context.fill();
+    context.drawImage(gameCanvas, 0, 40);
+
     drawOverlay();
     drawInfo();
+
 }
 
 // ------------------------------ Game loop ------------------------------
